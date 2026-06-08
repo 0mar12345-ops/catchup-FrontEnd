@@ -7,7 +7,7 @@ import { Button } from '@/components/shared/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/shared/Card'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { OAuthStatusProvider } from '@/providers/oauth-status-provider'
-import { logout } from '@/http/auth.http'
+import { logout, syncCourses } from '@/http/auth.http'
 import { generateCatchUp, getCourseStats, type CourseStats } from '@/http/catchup.http'
 import { getDashboardCourses, type DashboardCourse } from '@/http/courses.http'
 import { uploadAbsences } from '@/http/settings.http'
@@ -43,6 +43,9 @@ export default function DashboardPage() {
   const [uploadError, setUploadError] = useState('')
   const [absentStudents, setAbsentStudents] = useState<AbsentStudentRecord[]>([])
   const [generatingCourseId, setGeneratingCourseId] = useState<string | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [syncMessage, setSyncMessage] = useState('')
+  const [syncError, setSyncError] = useState(false)
 
   const fetchDashboard = async () => {
     try {
@@ -71,6 +74,24 @@ export default function DashboardPage() {
   useEffect(() => {
     void fetchDashboard()
   }, [])
+
+  const handleSync = async () => {
+    setIsSyncing(true)
+    setSyncMessage('')
+    setSyncError(false)
+    try {
+      const result = await syncCourses()
+      await fetchDashboard()
+      const c = result.courses_synced
+      const s = result.students_synced
+      setSyncMessage(`Synced ${c} ${c === 1 ? 'course' : 'courses'} and ${s} ${s === 1 ? 'student' : 'students'}.`)
+    } catch {
+      setSyncError(true)
+      setSyncMessage('Sync failed. Please try again.')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
 
   const handleAbsenceUpload = async (file?: File | null) => {
     if (!file) return
@@ -139,7 +160,18 @@ export default function DashboardPage() {
 
             <Card className="xl:col-span-2">
               <CardHeader>
-                <CardTitle>Today’s Classes</CardTitle>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle>Today’s Classes</CardTitle>
+                  <Button variant="outline" size="sm" onClick={handleSync} disabled={isSyncing} isLoading={isSyncing}>
+                    Sync Courses
+                  </Button>
+                </div>
+                {syncMessage && !syncError && (
+                  <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-300">{syncMessage}</p>
+                )}
+                {syncMessage && syncError && (
+                  <p className="mt-2 text-sm text-red-700 dark:text-red-300">{syncMessage}</p>
+                )}
               </CardHeader>
               <CardContent className="space-y-4">
                 <label className="space-y-2 text-sm text-muted-foreground">
