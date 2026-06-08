@@ -118,6 +118,13 @@ export function Header({
               {showMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg py-2 z-50">
                   <Link
+                    href="/admin"
+                    onClick={() => setShowMenu(false)}
+                    className="block w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors text-foreground"
+                  >
+                    Admin
+                  </Link>
+                  <Link
                     href="/behaviour"
                     onClick={() => setShowMenu(false)}
                     className="block w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors text-foreground"
