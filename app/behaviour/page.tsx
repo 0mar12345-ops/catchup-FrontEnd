@@ -8,24 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/shared/Ca
 import { Modal } from '@/components/shared/Modal'
 import { logout } from '@/http/auth.http'
 import { getDashboardCourses, getCourse, type DashboardCourse, type CourseStudent } from '@/http/courses.http'
+import { getBehaviourLogs, createBehaviourLog, type BehaviourLog } from '@/http/behaviour.http'
 
 type BehaviourType = 'positive' | 'negative'
 type FilterType = 'all' | 'positive' | 'negative'
 
 const POSITIVE_CATEGORIES = ['Participation', 'Leadership', 'Improvement', 'Other'] as const
 const NEGATIVE_CATEGORIES = ['Disruption', 'Incomplete Work', 'Disrespect', 'Other'] as const
-
-interface BehaviourLog {
-  id: string
-  studentId: string
-  studentName: string
-  courseId: string
-  courseName: string
-  type: BehaviourType
-  category: string
-  notes: string
-  date: string
-}
 
 interface LogForm {
   courseId: string
@@ -97,6 +86,8 @@ function FilterButton({
 export default function BehaviourPage() {
   const router = useRouter()
   const [logs, setLogs] = useState<BehaviourLog[]>([])
+  const [logsLoading, setLogsLoading] = useState(true)
+  const [logsError, setLogsError] = useState<string | null>(null)
   const [filter, setFilter] = useState<FilterType>('all')
   const [modalOpen, setModalOpen] = useState(false)
 
@@ -107,6 +98,24 @@ export default function BehaviourPage() {
   const [coursesLoading, setCoursesLoading] = useState(false)
   const [studentsLoading, setStudentsLoading] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const fetchLogs = async () => {
+    setLogsLoading(true)
+    setLogsError(null)
+    try {
+      const data = await getBehaviourLogs()
+      setLogs(data)
+    } catch {
+      setLogsError('Failed to load behaviour logs.')
+    } finally {
+      setLogsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void fetchLogs()
+  }, [])
 
   useEffect(() => {
     setCoursesLoading(true)
@@ -141,7 +150,7 @@ export default function BehaviourPage() {
     setModalOpen(true)
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.courseId) return setFormError('Please select a course.')
     if (!form.studentId) return setFormError('Please select a student.')
     if (!form.category) return setFormError('Please select a category.')
@@ -150,20 +159,26 @@ export default function BehaviourPage() {
     const selectedCourse = courses.find((c) => c.id === form.courseId)
     const selectedStudent = students.find((s) => s.id === form.studentId)
 
-    const newLog: BehaviourLog = {
-      id: crypto.randomUUID(),
-      studentId: form.studentId,
-      studentName: selectedStudent?.name ?? form.studentId,
-      courseId: form.courseId,
-      courseName: selectedCourse?.name ?? form.courseId,
-      type: form.type,
-      category: form.category,
-      notes: form.notes.trim(),
-      date: form.date,
+    setIsSubmitting(true)
+    setFormError(null)
+    try {
+      await createBehaviourLog({
+        courseId: form.courseId,
+        courseName: selectedCourse?.name ?? form.courseId,
+        studentEmail: selectedStudent?.email ?? '',
+        studentName: selectedStudent?.name ?? form.studentId,
+        type: form.type,
+        category: form.category,
+        notes: form.notes.trim(),
+        date: form.date,
+      })
+      setModalOpen(false)
+      await fetchLogs()
+    } catch {
+      setFormError('Failed to save entry. Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
-
-    setLogs((prev) => [newLog, ...prev])
-    setModalOpen(false)
   }
 
   const handleLogout = async () => {
@@ -239,7 +254,21 @@ export default function BehaviourPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {filteredLogs.length === 0 ? (
+            {logsLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <svg className="h-6 w-6 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </div>
+            ) : logsError ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <p className="text-sm font-medium text-destructive">{logsError}</p>
+                <button onClick={fetchLogs} className="mt-2 text-xs text-primary hover:underline">
+                  Try again
+                </button>
+              </div>
+            ) : filteredLogs.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="mb-4 rounded-full bg-muted p-4">
                   <svg className="h-8 w-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -429,7 +458,7 @@ export default function BehaviourPage() {
             <Button variant="outline" size="md" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
-            <Button variant="primary" size="md" onClick={handleSubmit}>
+            <Button variant="primary" size="md" onClick={handleSubmit} isLoading={isSubmitting} disabled={isSubmitting}>
               Save Entry
             </Button>
           </div>
