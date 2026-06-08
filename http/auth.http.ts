@@ -6,7 +6,8 @@ export interface GoogleAuthStartResponse {
 
 export interface MeResponse {
   username: string
-  role: string
+  email?: string
+  role?: string
 }
 
 export async function getGoogleOAuthURL() {

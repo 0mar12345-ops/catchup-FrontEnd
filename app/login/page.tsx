@@ -1,9 +1,42 @@
 'use client'
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { LoginScreen } from '@/components/screens/LoginScreen'
-import { getGoogleOAuthURL } from '@/http/auth.http'
+import { getGoogleOAuthURL, getMe } from '@/http/auth.http'
+import { getDashboardCourses } from '@/http/courses.http'
 
 export default function LoginPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    let isMounted = true
+
+    const detectPortal = async () => {
+      try {
+        const me = await getMe()
+        const { courses = [] } = await getDashboardCourses()
+
+        if (!isMounted) return
+
+        if (me.role === 'teacher' || courses.length > 0) {
+          router.replace('/dashboard')
+          return
+        }
+
+        router.replace('/student/dashboard')
+      } catch {
+        // No authenticated session yet, so stay on login.
+      }
+    }
+
+    void detectPortal()
+
+    return () => {
+      isMounted = false
+    }
+  }, [router])
+
   return (
     <LoginScreen
       onGoogleLogin={async () => {
