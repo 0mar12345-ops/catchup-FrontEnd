@@ -55,8 +55,8 @@ function normalize(raw: BehaviourLogRaw): BehaviourLog {
 }
 
 export async function getBehaviourLogs(): Promise<BehaviourLog[]> {
-  const { data } = await http.get<BehaviourLogRaw[]>('/behaviour')
-  return data.map(normalize)
+  const { data } = await http.get<{ logs: BehaviourLogRaw[]; total: number }>('/behaviour')
+  return data.logs.map(normalize)
 }
 
 export async function createBehaviourLog(payload: CreateBehaviourLogPayload): Promise<BehaviourLog> {
