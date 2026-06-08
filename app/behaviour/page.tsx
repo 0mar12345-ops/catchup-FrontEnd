@@ -19,6 +19,8 @@ const NEGATIVE_CATEGORIES = ['Disruption', 'Incomplete Work', 'Disrespect', 'Oth
 interface LogForm {
   courseId: string
   studentId: string
+  studentName: string
+  studentEmail: string
   type: BehaviourType
   category: string
   notes: string
@@ -28,6 +30,8 @@ interface LogForm {
 const EMPTY_FORM: LogForm = {
   courseId: '',
   studentId: '',
+  studentName: '',
+  studentEmail: '',
   type: 'positive',
   category: '',
   notes: '',
@@ -131,7 +135,7 @@ export default function BehaviourPage() {
       return
     }
     setStudentsLoading(true)
-    setForm((prev) => ({ ...prev, studentId: '' }))
+    setForm((prev) => ({ ...prev, studentId: '', studentName: '', studentEmail: '' }))
     getCourse(form.courseId)
       .then(({ students }) => setStudents(students))
       .catch(() => setStudents([]))
@@ -157,7 +161,6 @@ export default function BehaviourPage() {
     if (!form.date) return setFormError('Please select a date.')
 
     const selectedCourse = courses.find((c) => c.id === form.courseId)
-    const selectedStudent = students.find((s) => s.id === form.studentId)
 
     setIsSubmitting(true)
     setFormError(null)
@@ -165,8 +168,8 @@ export default function BehaviourPage() {
       await createBehaviourLog({
         courseId: selectedCourse?._id ?? form.courseId,
         courseName: selectedCourse?.name ?? form.courseId,
-        studentEmail: selectedStudent?.email ?? '',
-        studentName: selectedStudent?.name ?? form.studentId,
+        studentEmail: form.studentEmail,
+        studentName: form.studentName,
         type: form.type,
         category: form.category,
         notes: form.notes.trim(),
@@ -356,7 +359,15 @@ export default function BehaviourPage() {
             <label className="text-sm font-medium text-foreground">Student</label>
             <select
               value={form.studentId}
-              onChange={(e) => setForm((prev) => ({ ...prev, studentId: e.target.value }))}
+              onChange={(e) => {
+                const student = students.find((s) => s.id === e.target.value)
+                setForm((prev) => ({
+                  ...prev,
+                  studentId: e.target.value,
+                  studentName: student?.name ?? '',
+                  studentEmail: student?.email ?? '',
+                }))
+              }}
               disabled={!form.courseId || studentsLoading}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
             >
