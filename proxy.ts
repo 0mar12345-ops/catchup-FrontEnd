@@ -26,8 +26,10 @@ export function proxy(request: NextRequest) {
   const hasAuthCookie = Boolean(request.cookies.get(AUTH_COOKIE_NAME)?.value)
   const role = request.cookies.get(ROLE_COOKIE_NAME)?.value
 
-  // Authenticated users visiting public pages go to their role-appropriate home
-  if ((pathname === '/' || pathname.startsWith('/login')) && hasAuthCookie) {
+  // Authenticated users visiting the landing page go to their role-appropriate home.
+  // /login is intentionally excluded so detectPortal can run, set the catchup_role
+  // cookie, and redirect to the correct dashboard after OAuth completes.
+  if (pathname === '/' && hasAuthCookie) {
     return NextResponse.redirect(new URL(getHomePath(role), request.url))
   }
 
