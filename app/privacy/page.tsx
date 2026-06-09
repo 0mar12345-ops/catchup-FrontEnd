@@ -91,6 +91,12 @@ export default function PrivacyPage() {
                 </li>
               ))}
             </ul>
+            <p className="mt-3">
+              EduCatchUp only requests Google Classroom permissions necessary to retrieve course information, student rosters, and coursework required for catch-up lesson generation. Specifically:{' '}
+              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">classroom.courses.readonly</code>,{' '}
+              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">classroom.rosters.readonly</code>,{' '}
+              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">classroom.coursework.students.readonly</code>.
+            </p>
           </Section>
 
           <Section title="3. How we use your data">
@@ -111,9 +117,22 @@ export default function PrivacyPage() {
               ))}
             </ul>
             <p className="mt-3">We do not use your data for advertising, profiling, or any purpose beyond operating the service.</p>
+            <p className="mt-2">
+              School administrators may only access data belonging to users and students within their own school. Cross-school data access is not possible.
+            </p>
           </Section>
 
-          <Section title="4. Who we share data with">
+          <Section title="4. Google API data usage">
+            <p>
+              EduCatchUp&apos;s use and transfer of information received from Google APIs to any other app will adhere to the{' '}
+              <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:opacity-80">
+                Google API Services User Data Policy
+              </a>
+              , including the Limited Use requirements.
+            </p>
+          </Section>
+
+          <Section title="5. Who we share data with">
             <p>
               <strong className="font-medium text-foreground">We do not sell, rent, or share your data with third parties.</strong>{' '}
               Your data stays on our servers. The only external service we interact with on your behalf is the Google Classroom API, which is used to read your course and roster data — this is governed by{' '}
@@ -126,7 +145,7 @@ export default function PrivacyPage() {
             </p>
           </Section>
 
-          <Section title="5. Data retention">
+          <Section title="6. Data retention">
             <ul className="space-y-1.5 pl-4">
               {[
                 'Account data (name, email, role) is retained for as long as your account is active.',
@@ -143,20 +162,23 @@ export default function PrivacyPage() {
             </ul>
           </Section>
 
-          <Section title="6. Data security">
+          <Section title="7. Data security">
             <p>
-              All data is transmitted over HTTPS. Authentication is handled via Google OAuth — we never receive or store your Google password. Access tokens for the Google Classroom API are stored securely and used only to fulfil requests you initiate.
+              All data is transmitted over HTTPS. Authentication is handled via Google OAuth — we never receive or store your Google password.
+            </p>
+            <p className="mt-2">
+              OAuth access tokens and refresh tokens are encrypted at rest and used solely to provide requested Google Classroom functionality. Tokens are not shared with third parties and are deleted when a user disconnects their Google account or deletes their account.
             </p>
           </Section>
 
-          <Section title="7. Your rights">
+          <Section title="8. Your rights">
             <p>You have the right to:</p>
             <ul className="mt-2 space-y-1.5 pl-4">
               {[
                 'Access a copy of the data we hold about you.',
                 'Request correction of inaccurate data.',
                 'Request deletion of your account and all associated data.',
-                'Revoke EduCatchUp\'s access to your Google Classroom data at any time via your Google account permissions page.',
+                "Revoke EduCatchUp's access to your Google Classroom data at any time via your Google account permissions page.",
               ].map((item) => (
                 <li key={item} className="flex gap-2">
                   <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/50" />
@@ -173,9 +195,38 @@ export default function PrivacyPage() {
             </p>
           </Section>
 
-          <Section title="8. Children's privacy">
+          <Section title="9. Account deletion">
+            <p>
+              To request deletion of your account and all associated data, email us at{' '}
+              <a href={`mailto:${CONTACT_EMAIL}?subject=Delete%20My%20Account`} className="text-primary underline underline-offset-2 hover:opacity-80">
+                {CONTACT_EMAIL}
+              </a>{' '}
+              with the subject line <strong className="font-medium text-foreground">&quot;Delete My Account&quot;</strong>. We will process your request within 30 days and confirm by email once your data has been permanently removed.
+            </p>
+            <p className="mt-2">Deleting your account will permanently remove:</p>
+            <ul className="mt-2 space-y-1.5 pl-4">
+              {[
+                'Your account profile (name, email, role).',
+                'All synced Google Classroom course and roster data.',
+                'All absence records you have uploaded.',
+                'All behaviour log entries you have created.',
+                'All AI-generated catch-up lesson content associated with your students.',
+                'Your Google OAuth access and refresh tokens.',
+              ].map((item) => (
+                <li key={item} className="flex gap-2">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/50" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </Section>
+
+          <Section title="10. Children's privacy">
             <p>
               EduCatchUp is used by teachers, school administrators, and students. Students interact with the platform via the student portal to view and complete AI-generated catch-up lessons assigned to them by their teacher. Student accounts are provisioned by the school, and students access the platform using their school-issued Google account.
+            </p>
+            <p className="mt-2">
+              EduCatchUp acts as a service provider to educational institutions. Student information is processed only under the direction of the relevant school and solely for educational purposes.
             </p>
             <p className="mt-2">
               Student data (names, email addresses, and catch-up lesson content) is processed solely to deliver the catch-up workflow. Schools are responsible for obtaining any required parental or guardian consent for students to use the platform in accordance with applicable law. If you believe student data has been processed inappropriately, please contact us immediately at{' '}
@@ -185,13 +236,13 @@ export default function PrivacyPage() {
             </p>
           </Section>
 
-          <Section title="9. Changes to this policy">
+          <Section title="11. Changes to this policy">
             <p>
               We may update this policy from time to time. When we do, we will update the effective date at the top of this page. Continued use of the service after changes are posted constitutes your acceptance of the revised policy.
             </p>
           </Section>
 
-          <Section title="10. Contact">
+          <Section title="12. Contact">
             <p>
               Questions or concerns about this policy? Contact us at{' '}
               <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary underline underline-offset-2 hover:opacity-80">
