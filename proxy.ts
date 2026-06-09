@@ -82,6 +82,8 @@ export const config = {
   matcher: [
     '/',
     '/login',
+    '/privacy',
+    '/terms',
     '/dashboard/:path*',
     '/course/:path*',
     '/student/:path*',
