@@ -27,3 +27,12 @@ export async function generateLesson(data: GenerateLessonRequest) {
   const { data: result } = await http.post<GenerateLessonResponse>('/lesson-builder/generate', data)
   return result
 }
+
+export async function generatePptx(data: GenerateLessonRequest): Promise<ArrayBuffer> {
+  const { data: result } = await http.post<ArrayBuffer>(
+    '/lesson-builder/generate-pptx',
+    data,
+    { responseType: 'arraybuffer' },
+  )
+  return result
+}

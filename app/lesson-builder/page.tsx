@@ -10,7 +10,7 @@ import { Input } from '@/components/shared/Input'
 import { OAuthStatusProvider } from '@/providers/oauth-status-provider'
 import { logout } from '@/http/auth.http'
 import { getDashboardCourses, type DashboardCourse } from '@/http/courses.http'
-import { generateLesson, type GenerateLessonResponse, type LessonPlan } from '@/http/lesson-builder.http'
+import { generateLesson, generatePptx, type GenerateLessonResponse, type LessonPlan } from '@/http/lesson-builder.http'
 
 const LESSON_SECTIONS: Array<{
   key: keyof LessonPlan
@@ -65,6 +65,7 @@ export default function LessonBuilderPage() {
   const [weekNumber, setWeekNumber] = useState('')
   const [topic, setTopic] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isDownloadingPptx, setIsDownloadingPptx] = useState(false)
   const [formError, setFormError] = useState('')
 
   const [lesson, setLesson] = useState<GenerateLessonResponse | null>(null)
@@ -135,6 +136,32 @@ export default function LessonBuilderPage() {
 
   const handleDownloadPDF = () => {
     window.print()
+  }
+
+  const handleDownloadPptx = async () => {
+    if (!lesson) return
+    setIsDownloadingPptx(true)
+    try {
+      const parsed = weekNumber ? parseInt(weekNumber, 10) : undefined
+      const buffer = await generatePptx({
+        course_id: selectedCourseId,
+        topic: topic.trim(),
+        ...(parsed !== undefined && !isNaN(parsed) ? { week_number: parsed } : {}),
+      })
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${lesson.topic.replace(/\s+/g, '_')}_lesson.pptx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      // silent — user can retry
+    } finally {
+      setIsDownloadingPptx(false)
+    }
   }
 
   const updateSection = (key: keyof LessonPlan, value: string) => {
@@ -315,9 +342,14 @@ export default function LessonBuilderPage() {
                         {lesson.week_label} · {lesson.topic}
                       </p>
                     </div>
-                    <Button variant="primary" size="sm" onClick={handleDownloadPDF}>
-                      Download PDF
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" isLoading={isDownloadingPptx} disabled={isDownloadingPptx} onClick={() => void handleDownloadPptx()}>
+                        Download PPTX
+                      </Button>
+                      <Button variant="primary" size="sm" onClick={handleDownloadPDF}>
+                        Download PDF
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Print-only title block */}
@@ -366,6 +398,9 @@ export default function LessonBuilderPage() {
                   <div className="flex gap-3 pb-8 no-print">
                     <Button variant="outline" onClick={handleReset}>
                       Start Over
+                    </Button>
+                    <Button variant="outline" isLoading={isDownloadingPptx} disabled={isDownloadingPptx} onClick={() => void handleDownloadPptx()}>
+                      Download as PPTX
                     </Button>
                     <Button variant="primary" onClick={handleDownloadPDF}>
                       Download as PDF
