@@ -1,83 +1,18 @@
 'use client'
 
-import { type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/shared/Header'
 import { Card, CardContent } from '@/components/shared/Card'
 import { logout } from '@/http/auth.http'
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface AbsenceRecord {
-  id: string
-  studentName: string
-  courseName: string
-  date: string
-  reason: string
-  excused: boolean
-}
-
-interface CourseCatchUpStat {
-  courseId: string
-  courseName: string
-  section: string
-  totalGenerated: number
-  completed: number
-  pending: number
-}
-
-interface CourseBehaviourSummary {
-  courseId: string
-  courseName: string
-  positive: number
-  negative: number
-}
-
-interface MissedAssessment {
-  id: string
-  studentName: string
-  courseName: string
-  assessmentTitle: string
-  assessmentDate: string
-  absenceReason: string
-}
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const MOCK_ABSENCES: AbsenceRecord[] = [
-  { id: '1',  studentName: 'Emma Johnson',      courseName: 'AP Biology',        date: '2026-06-02', reason: 'Illness',               excused: true  },
-  { id: '2',  studentName: 'Liam Martinez',     courseName: 'Honors Chemistry',  date: '2026-06-03', reason: 'Medical appointment',   excused: true  },
-  { id: '3',  studentName: 'Olivia Park',       courseName: 'Biology Basics',    date: '2026-06-03', reason: 'No reason provided',    excused: false },
-  { id: '4',  studentName: 'Noah Williams',     courseName: 'AP Biology',        date: '2026-06-04', reason: 'Family emergency',      excused: true  },
-  { id: '5',  studentName: 'Ava Thompson',      courseName: 'Honors Chemistry',  date: '2026-06-04', reason: 'No reason provided',    excused: false },
-  { id: '6',  studentName: 'Mason Chen',        courseName: 'Biology Basics',    date: '2026-06-05', reason: 'Illness',               excused: true  },
-  { id: '7',  studentName: 'Sophie Anderson',   courseName: 'AP Biology',        date: '2026-06-05', reason: 'No reason provided',    excused: false },
-  { id: '8',  studentName: 'Ethan Rodriguez',   courseName: 'Honors Chemistry',  date: '2026-06-06', reason: 'Illness',               excused: true  },
-  { id: '9',  studentName: 'Isabella Lee',      courseName: 'Biology Basics',    date: '2026-06-06', reason: 'No reason provided',    excused: false },
-  { id: '10', studentName: 'James Wilson',      courseName: 'AP Biology',        date: '2026-06-07', reason: 'Medical appointment',   excused: true  },
-  { id: '11', studentName: 'Charlotte Davis',   courseName: 'Honors Chemistry',  date: '2026-06-07', reason: 'No reason provided',    excused: false },
-  { id: '12', studentName: 'Benjamin Taylor',   courseName: 'Biology Basics',    date: '2026-06-08', reason: 'Illness',               excused: true  },
-]
-
-const MOCK_CATCHUP_STATS: CourseCatchUpStat[] = [
-  { courseId: '1', courseName: 'AP Biology',       section: '3rd Period', totalGenerated: 18, completed: 14, pending: 4 },
-  { courseId: '2', courseName: 'Honors Chemistry', section: '5th Period', totalGenerated: 12, completed:  9, pending: 3 },
-  { courseId: '3', courseName: 'Biology Basics',   section: '6th Period', totalGenerated: 22, completed: 16, pending: 6 },
-]
-
-const MOCK_BEHAVIOUR_SUMMARY: CourseBehaviourSummary[] = [
-  { courseId: '1', courseName: 'AP Biology',       positive: 24, negative:  7 },
-  { courseId: '2', courseName: 'Honors Chemistry', positive: 18, negative: 11 },
-  { courseId: '3', courseName: 'Biology Basics',   positive: 31, negative: 15 },
-]
-
-const MOCK_MISSED_ASSESSMENTS: MissedAssessment[] = [
-  { id: '1', studentName: 'Emma Johnson',    courseName: 'AP Biology',       assessmentTitle: 'Chapter 6 Test — Cell Respiration',   assessmentDate: '2026-06-02', absenceReason: 'Illness'             },
-  { id: '2', studentName: 'Noah Williams',   courseName: 'AP Biology',       assessmentTitle: 'Lab Practical: Photosynthesis',        assessmentDate: '2026-06-04', absenceReason: 'Family emergency'    },
-  { id: '3', studentName: 'Liam Martinez',   courseName: 'Honors Chemistry', assessmentTitle: 'Mid-Unit Quiz — Atomic Structure',     assessmentDate: '2026-06-03', absenceReason: 'Medical appointment' },
-  { id: '4', studentName: 'Mason Chen',      courseName: 'Biology Basics',   assessmentTitle: 'Chapter 3 Quiz — Ecosystems',          assessmentDate: '2026-06-05', absenceReason: 'Illness'             },
-  { id: '5', studentName: 'Charlotte Davis', courseName: 'Honors Chemistry', assessmentTitle: 'Term Overview Assessment',             assessmentDate: '2026-06-07', absenceReason: 'No reason provided'  },
-]
+import {
+  getAdminOverview,
+  type AbsenceRecord,
+  type CourseCatchUpStat,
+  type CourseBehaviourSummary,
+  type MissedAssessment,
+  type AdminOverview,
+} from '@/http/admin.http'
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -166,14 +101,26 @@ function fmtDate(iso: string) {
 
 export default function AdminPage() {
   const router = useRouter()
+  const [overview, setOverview] = useState<AdminOverview | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  // Derived overview metrics
-  const totalStudents = 83
-  const totalAbsencesThisMonth = MOCK_ABSENCES.length
-  const totalGenerated = MOCK_CATCHUP_STATS.reduce((s, c) => s + c.totalGenerated, 0)
-  const totalCompleted = MOCK_CATCHUP_STATS.reduce((s, c) => s + c.completed, 0)
-  const completionRate = totalGenerated > 0 ? Math.round((totalCompleted / totalGenerated) * 100) : 0
-  const totalBehaviourLogs = MOCK_BEHAVIOUR_SUMMARY.reduce((s, c) => s + c.positive + c.negative, 0)
+  useEffect(() => {
+    void fetchOverview()
+  }, [])
+
+  const fetchOverview = async () => {
+    try {
+      setIsLoading(true)
+      setError('')
+      const data = await getAdminOverview()
+      setOverview(data)
+    } catch {
+      setError('Failed to load admin overview. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleLogout = async () => {
     try { await logout() } finally {
@@ -181,6 +128,23 @@ export default function AdminPage() {
       router.refresh()
     }
   }
+
+  // Derived data
+  const absences: AbsenceRecord[] = overview?.absences ?? []
+  const catchupStats: CourseCatchUpStat[] = overview?.catchupStats ?? []
+  const behaviourSummary: CourseBehaviourSummary[] = overview?.behaviourSummary ?? []
+  const missedAssessments: MissedAssessment[] = overview?.missedAssessments ?? []
+
+  const totalStudents = overview?.totalStudents ?? 0
+  const totalAbsencesThisMonth = overview?.totalAbsencesThisMonth ?? absences.length
+  const totalGenerated = catchupStats.reduce((s, c) => s + c.totalGenerated, 0)
+  const totalCompleted = catchupStats.reduce((s, c) => s + c.completed, 0)
+  const completionRate = overview?.catchupCompletionRate != null
+    ? Math.round(overview.catchupCompletionRate)
+    : (totalGenerated > 0 ? Math.round((totalCompleted / totalGenerated) * 100) : 0)
+  const totalBehaviourLogs = overview?.totalBehaviourLogs ?? behaviourSummary.reduce((s, c) => s + c.positive + c.negative, 0)
+  const totalPositive = behaviourSummary.reduce((s, c) => s + c.positive, 0)
+  const totalNegative = behaviourSummary.reduce((s, c) => s + c.negative, 0)
 
   return (
     <div className="min-h-screen bg-background">
@@ -204,236 +168,283 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
-        {/* ── Overview cards ────────────────────────────────────────────────── */}
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Total Students"
-            value={totalStudents}
-            sub="Across all active courses"
-            accent="indigo"
-            icon={
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            }
-          />
-          <StatCard
-            label="Absences This Month"
-            value={totalAbsencesThisMonth}
-            sub="June 2026"
-            accent="amber"
-            icon={
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            }
-          />
-          <StatCard
-            label="Catch-Up Completion"
-            value={`${completionRate}%`}
-            sub={`${totalCompleted} of ${totalGenerated} completed`}
-            accent="emerald"
-            icon={
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            }
-          />
-          <StatCard
-            label="Behaviour Logs"
-            value={totalBehaviourLogs}
-            sub={`${MOCK_BEHAVIOUR_SUMMARY.reduce((s, c) => s + c.positive, 0)} positive · ${MOCK_BEHAVIOUR_SUMMARY.reduce((s, c) => s + c.negative, 0)} negative`}
-            accent="violet"
-            icon={
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-            }
-          />
-        </section>
+        {/* ── Loading ───────────────────────────────────────────────────────── */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-20">
+            <svg className="h-8 w-8 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          </div>
+        )}
 
-        {/* ── Absences table ────────────────────────────────────────────────── */}
-        <section className="space-y-4">
-          <SectionHeading
-            title="Absences"
-            meta={`${MOCK_ABSENCES.length} records this month`}
-          />
-          <Card className="overflow-hidden border border-border/70 shadow-sm">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-border text-sm">
-                  <TableHead cols={['Student', 'Course', 'Date', 'Reason', 'Status']} />
-                  <tbody className="divide-y divide-border bg-card">
-                    {MOCK_ABSENCES.map((row) => (
-                      <tr key={row.id} className="transition-colors hover:bg-muted/40">
-                        <td className="whitespace-nowrap px-6 py-4 font-medium text-foreground">{row.studentName}</td>
-                        <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">{row.courseName}</td>
-                        <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">{fmtDate(row.date)}</td>
-                        <td className="whitespace-nowrap px-6 py-4 text-foreground">{row.reason}</td>
-                        <td className="whitespace-nowrap px-6 py-4">
-                          <ExcusedBadge excused={row.excused} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+        {/* ── Error ────────────────────────────────────────────────────────── */}
+        {error && !isLoading && (
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-6 py-4 text-sm text-destructive">
+            {error}
+          </div>
+        )}
 
-        {/* ── Catch-Up Status + Behaviour Summary ─────────────────────────── */}
-        <div className="grid gap-8 xl:grid-cols-2">
+        {/* ── Content ──────────────────────────────────────────────────────── */}
+        {!isLoading && !error && (
+          <>
+            {/* ── Overview cards ────────────────────────────────────────────── */}
+            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <StatCard
+                label="Total Students"
+                value={totalStudents}
+                sub="Across all active courses"
+                accent="indigo"
+                icon={
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                }
+              />
+              <StatCard
+                label="Absences This Month"
+                value={totalAbsencesThisMonth}
+                sub="Current month"
+                accent="amber"
+                icon={
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                }
+              />
+              <StatCard
+                label="Catch-Up Completion"
+                value={`${completionRate}%`}
+                sub={`${totalCompleted} of ${totalGenerated} completed`}
+                accent="emerald"
+                icon={
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                }
+              />
+              <StatCard
+                label="Behaviour Logs"
+                value={totalBehaviourLogs}
+                sub={`${totalPositive} positive · ${totalNegative} negative`}
+                accent="violet"
+                icon={
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                }
+              />
+            </section>
 
-          {/* Catch-Up Status */}
-          <section className="space-y-4">
-            <SectionHeading title="Catch-Up Status" meta="Per course" />
-            <Card className="overflow-hidden border border-border/70 shadow-sm">
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border text-sm">
-                    <TableHead cols={['Course', 'Generated', 'Completed', 'Pending']} />
-                    <tbody className="divide-y divide-border bg-card">
-                      {MOCK_CATCHUP_STATS.map((row) => {
-                        const pct = row.totalGenerated > 0
-                          ? Math.round((row.completed / row.totalGenerated) * 100)
-                          : 0
-                        return (
-                          <tr key={row.courseId} className="transition-colors hover:bg-muted/40">
-                            <td className="px-6 py-4">
-                              <p className="font-medium text-foreground">{row.courseName}</p>
-                              <p className="text-xs text-muted-foreground">{row.section}</p>
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4 text-foreground">{row.totalGenerated}</td>
+            {/* ── Absences table ────────────────────────────────────────────── */}
+            <section className="space-y-4">
+              <SectionHeading
+                title="Absences"
+                meta={`${absences.length} records this month`}
+              />
+              <Card className="overflow-hidden border border-border/70 shadow-sm">
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-border text-sm">
+                      <TableHead cols={['Student', 'Course', 'Date', 'Reason', 'Status']} />
+                      <tbody className="divide-y divide-border bg-card">
+                        {absences.map((row) => (
+                          <tr key={row.id} className="transition-colors hover:bg-muted/40">
+                            <td className="whitespace-nowrap px-6 py-4 font-medium text-foreground">{row.studentName}</td>
+                            <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">{row.courseName}</td>
+                            <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">{fmtDate(row.date)}</td>
+                            <td className="whitespace-nowrap px-6 py-4 text-foreground">{row.reason}</td>
                             <td className="whitespace-nowrap px-6 py-4">
-                              <span className="font-medium text-emerald-700 dark:text-emerald-400">{row.completed}</span>
-                              <span className="ml-1.5 text-xs text-muted-foreground">({pct}%)</span>
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4">
-                              <span className={`font-medium ${row.pending > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground'}`}>
-                                {row.pending}
-                              </span>
+                              <ExcusedBadge excused={row.excused} />
                             </td>
                           </tr>
-                        )
-                      })}
-                    </tbody>
-                    <tfoot className="border-t border-border bg-muted/30">
-                      <tr>
-                        <td className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total</td>
-                        <td className="px-6 py-3 text-sm font-semibold text-foreground">{totalGenerated}</td>
-                        <td className="px-6 py-3 text-sm font-semibold text-emerald-700 dark:text-emerald-400">{totalCompleted}</td>
-                        <td className="px-6 py-3 text-sm font-semibold text-amber-700 dark:text-amber-400">
-                          {MOCK_CATCHUP_STATS.reduce((s, c) => s + c.pending, 0)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-
-          {/* Behaviour Summary */}
-          <section className="space-y-4">
-            <SectionHeading title="Behaviour Summary" meta="Per course" />
-            <Card className="overflow-hidden border border-border/70 shadow-sm">
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border text-sm">
-                    <TableHead cols={['Course', 'Positive', 'Negative', 'Total']} />
-                    <tbody className="divide-y divide-border bg-card">
-                      {MOCK_BEHAVIOUR_SUMMARY.map((row) => {
-                        const total = row.positive + row.negative
-                        const posPct = total > 0 ? Math.round((row.positive / total) * 100) : 0
-                        return (
-                          <tr key={row.courseId} className="transition-colors hover:bg-muted/40">
-                            <td className="whitespace-nowrap px-6 py-4 font-medium text-foreground">{row.courseName}</td>
-                            <td className="whitespace-nowrap px-6 py-4">
-                              <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                {row.positive}
-                              </span>
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4">
-                              <span className="inline-flex items-center gap-1.5 font-medium text-red-700 dark:text-red-400">
-                                <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                                {row.negative}
-                              </span>
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4">
-                              <span className="font-medium text-foreground">{total}</span>
-                              <span className="ml-1.5 text-xs text-muted-foreground">({posPct}% positive)</span>
+                        ))}
+                        {absences.length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                              No absence records this month.
                             </td>
                           </tr>
-                        )
-                      })}
-                    </tbody>
-                    <tfoot className="border-t border-border bg-muted/30">
-                      <tr>
-                        <td className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total</td>
-                        <td className="px-6 py-3 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                          {MOCK_BEHAVIOUR_SUMMARY.reduce((s, c) => s + c.positive, 0)}
-                        </td>
-                        <td className="px-6 py-3 text-sm font-semibold text-red-700 dark:text-red-400">
-                          {MOCK_BEHAVIOUR_SUMMARY.reduce((s, c) => s + c.negative, 0)}
-                        </td>
-                        <td className="px-6 py-3 text-sm font-semibold text-foreground">{totalBehaviourLogs}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-        </div>
-
-        {/* ── Missed Assessments ────────────────────────────────────────────── */}
-        <section className="space-y-4">
-          <SectionHeading
-            title="Missed Assessments"
-            meta="Students absent on assessment days (term overview)"
-          />
-          <Card className="overflow-hidden border border-border/70 shadow-sm">
-            <CardContent className="p-0">
-              {MOCK_MISSED_ASSESSMENTS.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="mb-4 rounded-full bg-muted p-4">
-                    <svg className="h-8 w-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
-                  <p className="text-sm font-medium text-foreground">No missed assessments on record</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Upload a term overview to populate this section.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border text-sm">
-                    <TableHead cols={['Student', 'Course', 'Assessment', 'Date', 'Absence Reason']} />
-                    <tbody className="divide-y divide-border bg-card">
-                      {MOCK_MISSED_ASSESSMENTS.map((row) => (
-                        <tr key={row.id} className="transition-colors hover:bg-muted/40">
-                          <td className="whitespace-nowrap px-6 py-4 font-medium text-foreground">{row.studentName}</td>
-                          <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">{row.courseName}</td>
-                          <td className="max-w-[260px] px-6 py-4 text-foreground">
-                            <span className="line-clamp-2">{row.assessmentTitle}</span>
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">{fmtDate(row.assessmentDate)}</td>
-                          <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">{row.absenceReason}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </section>
+                </CardContent>
+              </Card>
+            </section>
+
+            {/* ── Catch-Up Status + Behaviour Summary ─────────────────────── */}
+            <div className="grid gap-8 xl:grid-cols-2">
+
+              {/* Catch-Up Status */}
+              <section className="space-y-4">
+                <SectionHeading title="Catch-Up Status" meta="Per course" />
+                <Card className="overflow-hidden border border-border/70 shadow-sm">
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-border text-sm">
+                        <TableHead cols={['Course', 'Generated', 'Completed', 'Pending']} />
+                        <tbody className="divide-y divide-border bg-card">
+                          {catchupStats.map((row) => {
+                            const pct = row.totalGenerated > 0
+                              ? Math.round((row.completed / row.totalGenerated) * 100)
+                              : 0
+                            return (
+                              <tr key={row.courseId} className="transition-colors hover:bg-muted/40">
+                                <td className="px-6 py-4">
+                                  <p className="font-medium text-foreground">{row.courseName}</p>
+                                  <p className="text-xs text-muted-foreground">{row.section}</p>
+                                </td>
+                                <td className="whitespace-nowrap px-6 py-4 text-foreground">{row.totalGenerated}</td>
+                                <td className="whitespace-nowrap px-6 py-4">
+                                  <span className="font-medium text-emerald-700 dark:text-emerald-400">{row.completed}</span>
+                                  <span className="ml-1.5 text-xs text-muted-foreground">({pct}%)</span>
+                                </td>
+                                <td className="whitespace-nowrap px-6 py-4">
+                                  <span className={`font-medium ${row.pending > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground'}`}>
+                                    {row.pending}
+                                  </span>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                          {catchupStats.length === 0 && (
+                            <tr>
+                              <td colSpan={4} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                                No catch-up data available.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                        {catchupStats.length > 0 && (
+                          <tfoot className="border-t border-border bg-muted/30">
+                            <tr>
+                              <td className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total</td>
+                              <td className="px-6 py-3 text-sm font-semibold text-foreground">{totalGenerated}</td>
+                              <td className="px-6 py-3 text-sm font-semibold text-emerald-700 dark:text-emerald-400">{totalCompleted}</td>
+                              <td className="px-6 py-3 text-sm font-semibold text-amber-700 dark:text-amber-400">
+                                {catchupStats.reduce((s, c) => s + c.pending, 0)}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        )}
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </section>
+
+              {/* Behaviour Summary */}
+              <section className="space-y-4">
+                <SectionHeading title="Behaviour Summary" meta="Per course" />
+                <Card className="overflow-hidden border border-border/70 shadow-sm">
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-border text-sm">
+                        <TableHead cols={['Course', 'Positive', 'Negative', 'Total']} />
+                        <tbody className="divide-y divide-border bg-card">
+                          {behaviourSummary.map((row) => {
+                            const total = row.positive + row.negative
+                            const posPct = total > 0 ? Math.round((row.positive / total) * 100) : 0
+                            return (
+                              <tr key={row.courseId} className="transition-colors hover:bg-muted/40">
+                                <td className="whitespace-nowrap px-6 py-4 font-medium text-foreground">{row.courseName}</td>
+                                <td className="whitespace-nowrap px-6 py-4">
+                                  <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                    {row.positive}
+                                  </span>
+                                </td>
+                                <td className="whitespace-nowrap px-6 py-4">
+                                  <span className="inline-flex items-center gap-1.5 font-medium text-red-700 dark:text-red-400">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                                    {row.negative}
+                                  </span>
+                                </td>
+                                <td className="whitespace-nowrap px-6 py-4">
+                                  <span className="font-medium text-foreground">{total}</span>
+                                  <span className="ml-1.5 text-xs text-muted-foreground">({posPct}% positive)</span>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                          {behaviourSummary.length === 0 && (
+                            <tr>
+                              <td colSpan={4} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                                No behaviour data available.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                        {behaviourSummary.length > 0 && (
+                          <tfoot className="border-t border-border bg-muted/30">
+                            <tr>
+                              <td className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total</td>
+                              <td className="px-6 py-3 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                                {totalPositive}
+                              </td>
+                              <td className="px-6 py-3 text-sm font-semibold text-red-700 dark:text-red-400">
+                                {totalNegative}
+                              </td>
+                              <td className="px-6 py-3 text-sm font-semibold text-foreground">{totalBehaviourLogs}</td>
+                            </tr>
+                          </tfoot>
+                        )}
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </section>
+            </div>
+
+            {/* ── Missed Assessments ────────────────────────────────────────── */}
+            <section className="space-y-4">
+              <SectionHeading
+                title="Missed Assessments"
+                meta="Students absent on assessment days (term overview)"
+              />
+              <Card className="overflow-hidden border border-border/70 shadow-sm">
+                <CardContent className="p-0">
+                  {missedAssessments.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <div className="mb-4 rounded-full bg-muted p-4">
+                        <svg className="h-8 w-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-medium text-foreground">No missed assessments on record</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Upload a term overview to populate this section.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-border text-sm">
+                        <TableHead cols={['Student', 'Course', 'Assessment', 'Date', 'Absence Reason']} />
+                        <tbody className="divide-y divide-border bg-card">
+                          {missedAssessments.map((row) => (
+                            <tr key={row.id} className="transition-colors hover:bg-muted/40">
+                              <td className="whitespace-nowrap px-6 py-4 font-medium text-foreground">{row.studentName}</td>
+                              <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">{row.courseName}</td>
+                              <td className="max-w-[260px] px-6 py-4 text-foreground">
+                                <span className="line-clamp-2">{row.assessmentTitle}</span>
+                              </td>
+                              <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">{fmtDate(row.assessmentDate)}</td>
+                              <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">{row.absenceReason}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </section>
+          </>
+        )}
 
       </main>
     </div>
