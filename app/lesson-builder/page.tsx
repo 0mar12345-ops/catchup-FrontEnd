@@ -10,7 +10,7 @@ import { Input } from '@/components/shared/Input'
 import { OAuthStatusProvider } from '@/providers/oauth-status-provider'
 import { logout } from '@/http/auth.http'
 import { getDashboardCourses, type DashboardCourse } from '@/http/courses.http'
-import { generateLesson, generatePptx, type GenerateLessonResponse, type LessonPlan } from '@/http/lesson-builder.http'
+import { generateLesson, generateSlides, type GenerateLessonResponse, type LessonPlan } from '@/http/lesson-builder.http'
 
 const LESSON_SECTIONS: Array<{
   key: keyof LessonPlan
@@ -65,7 +65,8 @@ export default function LessonBuilderPage() {
   const [weekNumber, setWeekNumber] = useState('')
   const [topic, setTopic] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [isDownloadingPptx, setIsDownloadingPptx] = useState(false)
+  const [isOpeningSlides, setIsOpeningSlides] = useState(false)
+  const [slidesError, setSlidesError] = useState('')
   const [formError, setFormError] = useState('')
 
   const [lesson, setLesson] = useState<GenerateLessonResponse | null>(null)
@@ -138,29 +139,24 @@ export default function LessonBuilderPage() {
     window.print()
   }
 
-  const handleDownloadPptx = async () => {
+  const handleOpenSlides = async () => {
     if (!lesson) return
-    setIsDownloadingPptx(true)
+    setSlidesError('')
+    setIsOpeningSlides(true)
     try {
       const parsed = weekNumber ? parseInt(weekNumber, 10) : undefined
-      const buffer = await generatePptx({
+      const result = await generateSlides({
         course_id: selectedCourseId,
         topic: topic.trim(),
         ...(parsed !== undefined && !isNaN(parsed) ? { week_number: parsed } : {}),
       })
-      const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${lesson.topic.replace(/\s+/g, '_')}_lesson.pptx`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch {
-      // silent — user can retry
+      window.open(result.presentation_url, '_blank', 'noopener,noreferrer')
+    } catch (error: unknown) {
+      const msg =
+        (error as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setSlidesError(msg || 'Failed to create Google Slides presentation. Please try again.')
     } finally {
-      setIsDownloadingPptx(false)
+      setIsOpeningSlides(false)
     }
   }
 
@@ -343,8 +339,8 @@ export default function LessonBuilderPage() {
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" isLoading={isDownloadingPptx} disabled={isDownloadingPptx} onClick={() => void handleDownloadPptx()}>
-                        Download PPTX
+                      <Button variant="outline" size="sm" isLoading={isOpeningSlides} disabled={isOpeningSlides} onClick={() => void handleOpenSlides()}>
+                        Open in Google Slides
                       </Button>
                       <Button variant="primary" size="sm" onClick={handleDownloadPDF}>
                         Download PDF
@@ -395,16 +391,23 @@ export default function LessonBuilderPage() {
                   ))}
 
                   {/* Bottom action bar */}
-                  <div className="flex gap-3 pb-8 no-print">
-                    <Button variant="outline" onClick={handleReset}>
-                      Start Over
-                    </Button>
-                    <Button variant="outline" isLoading={isDownloadingPptx} disabled={isDownloadingPptx} onClick={() => void handleDownloadPptx()}>
-                      Download as PPTX
-                    </Button>
-                    <Button variant="primary" onClick={handleDownloadPDF}>
-                      Download as PDF
-                    </Button>
+                  <div className="flex flex-col gap-3 pb-8 no-print">
+                    {slidesError && (
+                      <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-2.5 text-sm text-destructive">
+                        {slidesError}
+                      </p>
+                    )}
+                    <div className="flex gap-3">
+                      <Button variant="outline" onClick={handleReset}>
+                        Start Over
+                      </Button>
+                      <Button variant="outline" isLoading={isOpeningSlides} disabled={isOpeningSlides} onClick={() => void handleOpenSlides()}>
+                        Open in Google Slides
+                      </Button>
+                      <Button variant="primary" onClick={handleDownloadPDF}>
+                        Download as PDF
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
