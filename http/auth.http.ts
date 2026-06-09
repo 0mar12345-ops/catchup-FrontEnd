@@ -54,3 +54,8 @@ export async function getUserRole(): Promise<RoleResponse> {
   const { data } = await http.get<RoleResponse>('/users/role')
   return data
 }
+
+export async function detectRole(): Promise<RoleResponse> {
+  const { data } = await http.post<RoleResponse>('/users/detect-role')
+  return data
+}

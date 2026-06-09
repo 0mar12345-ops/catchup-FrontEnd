@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LoginScreen } from '@/components/screens/LoginScreen'
-import { getGoogleOAuthURL, getUserRole } from '@/http/auth.http'
+import { getGoogleOAuthURL, getUserRole, detectRole } from '@/http/auth.http'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -13,7 +13,12 @@ export default function LoginPage() {
 
     const detectPortal = async () => {
       try {
-        const { role } = await getUserRole()
+        // First confirm there is an active session
+        await getUserRole()
+
+        // Re-detect role from live Google Classroom data so the stored role
+        // is always up-to-date after OAuth completes.
+        const { role } = await detectRole()
 
         if (!isMounted) return
 
