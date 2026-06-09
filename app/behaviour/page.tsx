@@ -166,7 +166,7 @@ export default function BehaviourPage() {
     setFormError(null)
     try {
       await createBehaviourLog({
-        courseId: selectedCourse?._id ?? form.courseId,
+        courseId: form.courseId,
         courseName: selectedCourse?.name ?? form.courseId,
         studentEmail: form.studentEmail,
         studentName: form.studentName,

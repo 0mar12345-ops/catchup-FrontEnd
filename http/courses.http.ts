@@ -1,7 +1,6 @@
 import http from '@/http/http'
 
 export interface DashboardCourse {
-  _id: string
   id: string
   name: string
   section?: string
