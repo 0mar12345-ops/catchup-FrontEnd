@@ -66,8 +66,8 @@ export default function TermsPage() {
           <Section title="3. Eligibility and accounts">
             <ul className="space-y-1.5 pl-4">
               {[
-                'You must be at least 18 years old to create an account.',
-                'You must be an authorised employee or contractor of an educational institution.',
+                'Teachers and administrators must be authorised school staff to create an account.',
+                'Students may use the platform as directed by their school; student accounts are provisioned by the school.',
                 'You are responsible for maintaining the security of your Google account used to sign in.',
                 'You are responsible for all activity that occurs under your account.',
                 'You must notify us immediately at ' + CONTACT_EMAIL + ' if you become aware of any unauthorised use of your account.',
@@ -147,7 +147,7 @@ export default function TermsPage() {
 
           <Section title="11. Governing law">
             <p>
-              These Terms are governed by and construed in accordance with the laws of Australia. Any disputes arising from these Terms or your use of the Service shall be subject to the exclusive jurisdiction of the courts of Australia.
+              These Terms are governed by and construed in accordance with the laws of the United Arab Emirates. Any disputes arising from these Terms or your use of the Service shall be subject to the exclusive jurisdiction of the courts of the United Arab Emirates.
             </p>
           </Section>
 

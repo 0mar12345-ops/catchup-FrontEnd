@@ -175,7 +175,10 @@ export default function PrivacyPage() {
 
           <Section title="8. Children's privacy">
             <p>
-              EduCatchUp is designed for use by teachers and school administrators. Student data (names and email addresses) is processed as part of the service but students do not create accounts or interact with the platform directly. If you believe student data has been processed inappropriately, please contact us immediately at{' '}
+              EduCatchUp is used by teachers, school administrators, and students. Students interact with the platform via the student portal to view and complete AI-generated catch-up lessons assigned to them by their teacher. Student accounts are provisioned by the school, and students access the platform using their school-issued Google account.
+            </p>
+            <p className="mt-2">
+              Student data (names, email addresses, and catch-up lesson content) is processed solely to deliver the catch-up workflow. Schools are responsible for obtaining any required parental or guardian consent for students to use the platform in accordance with applicable law. If you believe student data has been processed inappropriately, please contact us immediately at{' '}
               <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary underline underline-offset-2 hover:opacity-80">
                 {CONTACT_EMAIL}
               </a>.
