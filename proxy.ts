@@ -1,9 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const AUTH_COOKIE_NAME = process.env.NEXT_PUBLIC_AUTH_COOKIE_NAME || 'gclass_token'
-const ROLE_COOKIE_NAME = 'catchup_role'
+const JWT_COOKIE_NAME = 'gclass_jwt'
 
-// Return the home path for a given role (used for redirects)
+// Decode the JWT payload (base64url middle segment) and extract the role claim.
+// Returns undefined if the token is missing, malformed, or has no role claim.
+function getRoleFromJwt(token: string | undefined): string | undefined {
+  if (!token) return undefined
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return undefined
+    // JWT uses base64url — swap URL-safe chars before decoding
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const json = atob(base64)
+    const parsed = JSON.parse(json) as { role?: string }
+    return parsed.role
+  } catch {
+    return undefined
+  }
+}
+
 function getHomePath(role: string | undefined): string {
   if (role === 'admin') return '/admin'
   if (role === 'student') return '/student/dashboard'
@@ -24,11 +40,9 @@ function isProtectedPath(pathname: string) {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const hasAuthCookie = Boolean(request.cookies.get(AUTH_COOKIE_NAME)?.value)
-  const role = request.cookies.get(ROLE_COOKIE_NAME)?.value
+  const role = getRoleFromJwt(request.cookies.get(JWT_COOKIE_NAME)?.value)
 
   // Authenticated users visiting the landing page go to their role-appropriate home.
-  // /login is intentionally excluded so detectPortal can run, set the catchup_role
-  // cookie, and redirect to the correct dashboard after OAuth completes.
   if (pathname === '/' && hasAuthCookie) {
     return NextResponse.redirect(new URL(getHomePath(role), request.url))
   }
@@ -38,9 +52,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Role-based route protection — only enforced when the role cookie is present.
-  // If the cookie is absent (e.g. a returning session before this feature shipped),
-  // we fall through and let auth-cookie presence alone gate access.
+  // Role-based route protection — only enforced when the JWT contains a role claim.
   if (hasAuthCookie && role) {
     const isAdminRoute = pathname.startsWith('/admin')
     const isTeacherRoute =

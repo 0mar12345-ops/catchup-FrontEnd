@@ -22,10 +22,6 @@ export default function LoginPage() {
 
         if (!isMounted) return
 
-        // Persist role in a client-readable cookie so the middleware can enforce
-        // role-based routing on subsequent navigations without an API call.
-        document.cookie = `catchup_role=${role}; path=/; max-age=86400; SameSite=Lax`
-
         if (role === 'admin') {
           router.replace('/admin')
         } else if (role === 'student') {
