@@ -92,11 +92,32 @@ export default function PrivacyPage() {
               ))}
             </ul>
             <p className="mt-3">
-              EduCatchUp only requests Google Classroom permissions necessary to retrieve course information, student rosters, and coursework required for catch-up lesson generation. Specifically:{' '}
-              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">classroom.courses.readonly</code>,{' '}
-              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">classroom.rosters.readonly</code>,{' '}
-              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">classroom.coursework.students.readonly</code>.
+              EduCatchUp requests the following Google API permissions. Each scope is used solely for the purpose described:
             </p>
+            <ul className="mt-2 space-y-2 pl-4">
+              {[
+                { scope: 'userinfo.email', reason: 'Identify your Google account and associate your session with your EduCatchUp account.' },
+                { scope: 'userinfo.profile', reason: 'Display your name and profile photo within the app.' },
+                { scope: 'classroom.courses.readonly', reason: 'Read your Google Classroom course list to populate your dashboard.' },
+                { scope: 'classroom.rosters.readonly', reason: 'Read class rosters (student names and emails) so absences can be matched to enrolled students.' },
+                { scope: 'classroom.coursework.students.readonly', reason: 'Read existing coursework submissions to understand what students have completed.' },
+                { scope: 'classroom.coursework.students', reason: 'Create and post catch-up assignments directly to Google Classroom on your behalf.' },
+                { scope: 'classroom.courseworkmaterials.readonly', reason: 'Read course materials to provide context when generating catch-up lesson content.' },
+                { scope: 'classroom.announcements.readonly', reason: 'Read existing class announcements for lesson context.' },
+                { scope: 'classroom.announcements', reason: 'Post catch-up lesson announcements to your class stream on your behalf.' },
+                { scope: 'drive.readonly', reason: 'Read files attached to course materials and coursework required for catch-up lesson generation.' },
+                { scope: 'drive.file', reason: 'Create and save generated lesson files (such as Google Slides presentations) to your Drive.' },
+                { scope: 'presentations', reason: 'Create and edit Google Slides presentations for AI-generated lesson content.' },
+              ].map(({ scope, reason }) => (
+                <li key={scope} className="flex gap-2">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/70" />
+                  <span>
+                    <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">{scope}</code>
+                    <span className="ml-2 text-muted-foreground">— {reason}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
           </Section>
 
           <Section title="3. How we use your data">
@@ -129,6 +150,9 @@ export default function PrivacyPage() {
                 Google API Services User Data Policy
               </a>
               , including the Limited Use requirements.
+            </p>
+            <p className="mt-2">
+              Google Workspace APIs are not used to develop, improve, or train generalized AI or machine learning models.
             </p>
           </Section>
 
