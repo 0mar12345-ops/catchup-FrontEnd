@@ -223,7 +223,7 @@ export default function LessonBuilderPage() {
                         {isLoadingCourses ? 'Loading courses…' : 'Select a course'}
                       </option>
                       {courses.map((course) => (
-                        <option key={course.id} value={course.id}>
+                        <option key={course._id} value={course._id}>
                           {course.name}
                           {course.section ? ` — ${course.section}` : ''}
                         </option>
