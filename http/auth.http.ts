@@ -45,3 +45,12 @@ export async function syncCourseStudents(courseId: string) {
   const { data } = await http.post<SyncCoursesResponse>(`/users/sync-course/${courseId}/students`)
   return data
 }
+
+export interface RoleResponse {
+  role: 'teacher' | 'admin' | 'student'
+}
+
+export async function getUserRole(): Promise<RoleResponse> {
+  const { data } = await http.get<RoleResponse>('/users/role')
+  return data
+}

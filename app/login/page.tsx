@@ -3,8 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LoginScreen } from '@/components/screens/LoginScreen'
-import { getGoogleOAuthURL, getMe } from '@/http/auth.http'
-import { getDashboardCourses } from '@/http/courses.http'
+import { getGoogleOAuthURL, getUserRole } from '@/http/auth.http'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -14,19 +13,23 @@ export default function LoginPage() {
 
     const detectPortal = async () => {
       try {
-        const me = await getMe()
-        const { courses = [] } = await getDashboardCourses()
+        const { role } = await getUserRole()
 
         if (!isMounted) return
 
-        if (me.role === 'teacher' || courses.length > 0) {
-          router.replace('/dashboard')
-          return
-        }
+        // Persist role in a client-readable cookie so the middleware can enforce
+        // role-based routing on subsequent navigations without an API call.
+        document.cookie = `catchup_role=${role}; path=/; max-age=86400; SameSite=Lax`
 
-        router.replace('/student/dashboard')
+        if (role === 'admin') {
+          router.replace('/admin')
+        } else if (role === 'student') {
+          router.replace('/student/dashboard')
+        } else {
+          router.replace('/dashboard')
+        }
       } catch {
-        // No authenticated session yet, so stay on login.
+        // No authenticated session yet — stay on login.
       }
     }
 

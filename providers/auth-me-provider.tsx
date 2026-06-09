@@ -5,6 +5,7 @@ import { getMe, type MeResponse } from '@/http/auth.http'
 
 type AuthMeContextValue = {
   me: MeResponse | null
+  role: string | null
   isLoading: boolean
   refreshMe: () => Promise<void>
 }
@@ -33,6 +34,7 @@ export function AuthMeProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(
     () => ({
       me,
+      role: me?.role ?? null,
       isLoading,
       refreshMe,
     }),
