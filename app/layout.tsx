@@ -21,6 +21,9 @@ export const metadata: Metadata = {
   title: 'CatchUp - AI-Powered Catch-Up Lessons',
   description: 'Personalized catch-up lessons for students created with AI',
   generator: 'v0.app',
+  verification: {
+    google: 'VKwaZdAUrzpO-L_ozYeJpWPEEMH75Uzljc5k4RCoS98',
+  },
   icons: {
     icon: [
       {
