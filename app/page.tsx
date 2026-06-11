@@ -288,9 +288,14 @@ export default function LandingPage() {
               </div>
               <span className="font-serif text-sm font-semibold text-foreground">EduCatchUp</span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Built for teachers who care about every student.
-            </p>
+            <div className="flex items-center gap-6">
+              <Link href="/privacy" className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                Privacy Policy
+              </Link>
+              <p className="text-xs text-muted-foreground">
+                Built for teachers who care about every student.
+              </p>
+            </div>
           </div>
         </div>
       </footer>
