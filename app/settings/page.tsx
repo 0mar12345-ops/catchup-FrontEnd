@@ -7,7 +7,8 @@ import { Button } from '@/components/shared/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/shared/Card'
 import { logout } from '@/http/auth.http'
 import { uploadAbsences, uploadTermOverview, uploadTimetable } from '@/http/settings.http'
-import { CalendarRange, FileSpreadsheet, ShieldAlert, UploadCloud } from 'lucide-react'
+import { type AvailableCourse, getAvailableCourses, importCourses } from '@/http/courses.http'
+import { CalendarRange, FileSpreadsheet, School, ShieldAlert, UploadCloud } from 'lucide-react'
 
 interface UploadState {
   fileName: string | null
@@ -210,6 +211,125 @@ function UploadSection({
   )
 }
 
+function ImportCoursesSection() {
+  const [courses, setCourses] = useState<AvailableCourse[] | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [isFetching, setIsFetching] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  const handleBrowse = async () => {
+    setIsFetching(true)
+    setError(null)
+    setMessage('')
+    try {
+      const data = await getAvailableCourses()
+      setCourses(data.courses)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch available courses.')
+    } finally {
+      setIsFetching(false)
+    }
+  }
+
+  const toggleCourse = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleImport = async () => {
+    if (selected.size === 0) return
+    setIsImporting(true)
+    setError(null)
+    setMessage('')
+    try {
+      const data = await importCourses(Array.from(selected))
+      setMessage(data.message || `Successfully imported ${data.imported} course(s).`)
+      setSelected(new Set())
+      setCourses(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Import failed. Please try again.')
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
+  return (
+    <Card className="border border-border/70 shadow-sm">
+      <CardHeader className="pb-2">
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl bg-primary/10 p-3 text-primary">
+            <School className="h-5 w-5" />
+          </div>
+          <div>
+            <CardTitle className="text-xl">Import Courses</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Browse and import your Google Classroom courses into Catchup.
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        <Button type="button" variant="outline" size="sm" onClick={handleBrowse} disabled={isFetching}>
+          {isFetching ? 'Loading…' : 'Browse Available Courses'}
+        </Button>
+
+        {courses !== null && courses.length === 0 && (
+          <p className="text-sm text-muted-foreground">No available courses found.</p>
+        )}
+
+        {courses !== null && courses.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-foreground">Select courses to import:</p>
+            <div className="max-h-64 overflow-y-auto rounded-lg border border-border divide-y divide-border">
+              {courses.map((course) => (
+                <label
+                  key={course.id}
+                  className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-muted/50"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.has(course.id)}
+                    onChange={() => toggleCourse(course.id)}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <span className="text-sm text-foreground">
+                    {course.name}
+                    {course.section && (
+                      <span className="ml-2 text-muted-foreground">({course.section})</span>
+                    )}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <Button type="button" size="sm" disabled={selected.size === 0 || isImporting} onClick={handleImport}>
+              {isImporting ? 'Importing…' : `Import Selected (${selected.size})`}
+            </Button>
+          </div>
+        )}
+
+        {message && (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-100">
+            {message}
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-100">
+            {error}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function SettingsPage() {
   const router = useRouter()
   const [timetableState, setTimetableState] = useState<UploadState>({
@@ -303,6 +423,8 @@ export default function SettingsPage() {
             <UploadSection key={card.title} {...card} />
           ))}
         </div>
+
+        <ImportCoursesSection />
       </main>
     </div>
   )

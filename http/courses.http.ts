@@ -46,3 +46,28 @@ export async function getCourse(courseId: string) {
   const { data } = await http.get<CourseDetails>(`/courses/${courseId}`)
   return data
 }
+
+export interface AvailableCourse {
+  id: string
+  name: string
+  section?: string
+}
+
+export interface AvailableCoursesResponse {
+  courses: AvailableCourse[]
+}
+
+export interface ImportCoursesResponse {
+  message: string
+  imported: number
+}
+
+export async function getAvailableCourses() {
+  const { data } = await http.get<AvailableCoursesResponse>('/courses/available')
+  return data
+}
+
+export async function importCourses(courseIds: string[]) {
+  const { data } = await http.post<ImportCoursesResponse>('/courses/import', { course_ids: courseIds })
+  return data
+}

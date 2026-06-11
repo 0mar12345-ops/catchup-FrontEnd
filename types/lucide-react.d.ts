@@ -29,4 +29,5 @@ declare module 'lucide-react' {
   export const ChevronRight: ComponentType<LucideProps>
   export const MoreHorizontal: ComponentType<LucideProps>
   export const MoreHorizontalIcon: ComponentType<LucideProps>
+  export const School: ComponentType<LucideProps>
 }
