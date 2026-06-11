@@ -292,6 +292,9 @@ export default function LandingPage() {
               <Link href="/privacy" className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
                 Privacy Policy
               </Link>
+              <Link href="/terms" className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                Terms of Service
+              </Link>
               <p className="text-xs text-muted-foreground">
                 Built for teachers who care about every student.
               </p>
